@@ -1,0 +1,22 @@
+{% extends 'bootstrap/base.html' %}
+{% block title %}Main page{% endblock %}
+{% block content %}
+   {{super()}}
+   <div class="container text-center">
+       <form class="d-inline-block" style="max-width: 33%;">
+           <a href="{{ url_for('add_article') }}"><h2>Добавить статью в БД</h2></a>
+           <a href="{{ url_for('view_articles') }}"><h2>Посмотреть БД</h2></a>
+           <hr>
+           {% if action == 1 %}
+               <div class="alert alert-success" role="alert">
+                <strong>Статья добавлена</strong>
+               </div>
+
+           {% elif action == 2 %}
+                <div class="alert alert-danger" role="alert">
+                    <strong>Статья не добавлена</strong>
+                </div>
+           {% endif %}
+       </form>
+   </div>
+{% endblock %}

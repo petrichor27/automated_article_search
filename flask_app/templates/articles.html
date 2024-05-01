@@ -1,0 +1,39 @@
+{% extends "bootstrap/base.html" %}
+
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+{% endblock %}
+
+{% block title %}Статьи{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-12">
+                <h1 class="text-center">Статьи</h1>
+            </div>
+        </div>
+        
+        {% for article in articles %}
+            <hr>
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <h3>{{ article.title }}</h3>
+                    <p><strong>Автор:</strong> {{ article.author }}</p>
+                    <p class="source-link"><strong>Источник: </strong><a href="{{ article.url }}">{{ article.url }}</a></p>
+                    <p><strong>Аннотация:</strong> {{ article.annotation }}</p>
+                    <p><strong>Текст статьи:</strong> {{ article.text }}</p>
+                </div>
+            </div>
+
+        {% endfor %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+{% endblock %}
