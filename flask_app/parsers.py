@@ -4,13 +4,14 @@ import requests
 import re
 from bs4 import BeautifulSoup
 
-from flask_app.article import Article
+from flask_app.article import Article, BlackList
+from flask_app.db import db
 
 
 def get_url_for_article(urls):
     url = None
     while url is None:
-        site = random.choice(urls)
+        site = random.choices(urls, weights=[7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 5])[0]
         response = requests.get(site)
         html = response.content
         soup = BeautifulSoup(html, 'html.parser')
@@ -23,8 +24,11 @@ def get_url_for_article(urls):
     return url
 
 
-def check_article(title):
+def check_article(title, url):
     if Article.query.filter(Article.title == title).first():
+        return True
+    elif BlackList.query.filter(BlackList.url == url).first():
+        print(f'url {url} in black list')
         return True
     else:
         print(title)
@@ -34,22 +38,25 @@ def check_article(title):
 def get_url_from_moluch(soup):
     for article_ in soup.find_all('div', class_='org-article'):
         a = article_.find('a')
-        if not check_article(clean_html_text(a.get_text())):
-            return 'https://moluch.ru' + a['href']
+        url = 'https://moluch.ru' + a['href']
+        if not check_article(clean_html_text(a.get_text()), url):
+            return url
 
 
 def get_url_from_cyberleninka(soup):
     for article_ in soup.find_all('h2', class_='title'):
         a = article_.find('a')
-        if not check_article(clean_html_text(a.get_text())):
-            return 'https://cyberleninka.ru/' + a['href']
+        url = 'https://cyberleninka.ru/' + a['href']
+        if not check_article(clean_html_text(a.get_text()), url):
+            return url
 
 
 def get_url_from_nauchforum(soup):
     for article_ in soup.find_all('dt', class_='title'):
         a = article_.find('a')
-        if not check_article(clean_html_text(a.get_text())):
-            return a['href']
+        url = a['href']
+        if not check_article(clean_html_text(a.get_text()), url):
+            return url
 
 
 def clean_html_text(html_text):
@@ -148,31 +155,46 @@ def get_article():
     # url = 'https://nauchforum.ru/conf/tech/xxxiv/73493'
 
     urls = [
-        'https://moluch.ru/keywords/%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7/',
+        # 'https://moluch.ru/keywords/%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7/',
         'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=1',
+        # 10 страниц с результатами
+        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=2',
+        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=3',
+        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=4',
+        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=5',
+        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=6',
+        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=7',
+        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=8',
+        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=9',
+        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=10',
         'https://nauchforum.ru/search/node/%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7',
     ]
     url = get_url_for_article(urls)
+    print(f'url: {url}')
 
-    response = requests.get(url)
-    html = response.content
-    soup = BeautifulSoup(html, 'html.parser')
-    article_data = None
-    if 'moluch' in url:
-        article_data = for_moluch(soup)
-    elif 'cyberleninka' in url:
-        article_data = for_cyberleninka(soup)
-    elif 'nauchforum' in url:
-        article_data = for_nauchforum(soup)
-    print(article_data)
+    try:
+        response = requests.get(url)
+        html = response.content
+        soup = BeautifulSoup(html, 'html.parser')
+        article_data = None
+        if 'moluch' in url:
+            article_data = for_moluch(soup)
+        elif 'cyberleninka' in url:
+            article_data = for_cyberleninka(soup)
+        elif 'nauchforum' in url:
+            article_data = for_nauchforum(soup)
 
-    article = Article(
-        title=article_data['title'],
-        author=article_data['authors'],
-        annotation=article_data['annotation'],
-        text=article_data['article_text'],
-        url=url,
-    )
-    return article
-
-# get_article()
+        article = Article(
+            title=article_data['title'],
+            author=article_data['authors'],
+            annotation=article_data['annotation'],
+            text=article_data['article_text'],
+            url=url,
+        )
+        db.session.add(article)
+        db.session.commit()
+    except Exception:
+        black_list = BlackList(url=url)
+        db.session.add(black_list)
+        db.session.commit()
+        raise

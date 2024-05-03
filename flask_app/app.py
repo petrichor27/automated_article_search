@@ -29,13 +29,24 @@ def view_articles():
 @app.route("/add_article")
 def add_article():
     try:
-        article = get_article()
-        db.session.add(article)
-        db.session.commit()
+        get_article()
         session['action'] = 1
-    except Exception:
+    except Exception as e:
+        print(e)
         session['action'] = 2
     return redirect('/')
+
+
+@app.route('/update_checkbox', methods=['POST'])
+def update_checkbox():
+    data = request.get_json()
+    checkbox_value = data.get('checkboxValue', False)
+    article_id = data.get('articleId', None)
+
+    article = Article.query.filter_by(id=int(article_id)).first()
+    article.compliance_label = checkbox_value
+    db.session.commit()
+    return 'Checkbox updated', 200
 
 
 if __name__ == "__main__":

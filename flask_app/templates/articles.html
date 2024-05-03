@@ -22,6 +22,35 @@
                     <h3>{{ article.title }}</h3>
                     <p><strong>Автор:</strong> {{ article.author }}</p>
                     <p class="source-link"><strong>Источник: </strong><a href="{{ article.url }}">{{ article.url }}</a></p>
+                    <label for="article_checkbox"><strong>Соответствует теме "Криптоанализ"?</strong>  </label>
+                    <input type="checkbox" id="article_checkbox_{{ article.id }}" name="article_checkbox"
+                           {% if article.compliance_label %} checked {% endif %} onclick="updateCheckbox({{ article.id }})">
+                    <script>
+                        function updateCheckbox(id) {
+                            var checkboxValue = document.getElementById("article_checkbox_" + id).checked;
+                            console.log(document.getElementById("article_checkbox_" + id))
+                            fetch('/update_checkbox', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    checkboxValue: checkboxValue,
+                                    articleId: id
+                                })
+                            })
+                            .then(response => {
+                                if (response.ok) {
+                                    console.log('Checkbox updated');
+                                } else {
+                                    console.error('Failed to update checkbox');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                            });
+                        }
+                    </script>
                     <p><strong>Аннотация:</strong> {{ article.annotation }}</p>
                     <p><strong>Текст статьи:</strong> {{ article.text }}</p>
                 </div>
