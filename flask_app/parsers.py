@@ -11,15 +11,15 @@ from flask_app.db import db
 def get_url_for_article(urls):
     url = None
     while url is None:
-        site = random.choices(urls, weights=[7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 5])[0]
+        site = random.choices(urls, weights=[0, 7, 7, 7, 7, 7, 7, 7, 7, 5])[0]
         response = requests.get(site)
         html = response.content
         soup = BeautifulSoup(html, 'html.parser')
         if site == urls[0]:
             url = get_url_from_moluch(soup)
-        if site == urls[1]:
-            url = get_url_from_cyberleninka(soup)
-        if site == urls[2]:
+        if site in urls[1:8]:
+            url = get_url_from_sibac(soup)
+        if site == urls[9]:
             url = get_url_from_nauchforum(soup)
     return url
 
@@ -36,27 +36,47 @@ def check_article(title, url):
 
 
 def get_url_from_moluch(soup):
-    for article_ in soup.find_all('div', class_='org-article'):
+    articles = soup.find_all('div', class_='org-article')
+    for _ in range(len(articles)):
+        article_ = random.choice(articles)
         a = article_.find('a')
         url = 'https://moluch.ru' + a['href']
         if not check_article(clean_html_text(a.get_text()), url):
             return url
+        print(url)
 
 
 def get_url_from_cyberleninka(soup):
-    for article_ in soup.find_all('h2', class_='title'):
+    articles = soup.find_all('h2', class_='title')
+    for _ in range(len(articles)):
+        article_ = random.choice(articles)
         a = article_.find('a')
         url = 'https://cyberleninka.ru/' + a['href']
         if not check_article(clean_html_text(a.get_text()), url):
             return url
+        print(url)
 
 
-def get_url_from_nauchforum(soup):
-    for article_ in soup.find_all('dt', class_='title'):
+def get_url_from_sibac(soup):
+    articles = soup.find_all('h3', class_='title')
+    for _ in range(len(articles)):
+        article_ = random.choice(articles)
         a = article_.find('a')
         url = a['href']
         if not check_article(clean_html_text(a.get_text()), url):
             return url
+        print(url)
+
+
+def get_url_from_nauchforum(soup):
+    articles = soup.find_all('dt', class_='title')
+    for _ in range(len(articles)):
+        article_ = random.choice(articles)
+        a = article_.find('a')
+        url = a['href']
+        if not check_article(clean_html_text(a.get_text()), url):
+            return url
+        print(url)
 
 
 def clean_html_text(html_text):
@@ -86,7 +106,7 @@ def for_moluch(soup):
 
     return {
         'title': title,
-        'authors': clean_html_text(', '.join(authors))[:-2],
+        'authors': clean_html_text(', '.join(authors)),
         'annotation': clean_html_text(' '.join(annotation)),
         'article_text': clean_html_text('\n'.join(article_text))
     }
@@ -118,9 +138,32 @@ def for_cyberleninka(soup):
 
     return {
         'title': title,
-        'authors': clean_html_text(', '.join(authors))[:-2],
+        'authors': clean_html_text(', '.join(authors)),
         'annotation': clean_html_text(annotation),
         'article_text': clean_html_text('\n'.join(article_text))
+    }
+
+
+def for_sibac(soup):
+    print(soup.find('h1', class_='page_title'))
+    title = soup.find('h1', class_='page_title').get_text()
+
+    authors = [author.get_text() for author in soup.find('div', class_='authors').find_all('a')]
+
+    article_body = soup.find('div', class_='field-item even')
+    article_text = []
+    annotation = None
+    for paragraph in article_body.find_all('p'):
+        if not annotation:
+            annotation = paragraph.get_text()
+        else:
+            article_text.append(paragraph.get_text())
+
+    return {
+        'title': title,
+        'authors': clean_html_text(', '.join(authors)),
+        'annotation': clean_html_text(annotation),
+        'article_text': clean_html_text('\n'.join(article_text)),
     }
 
 
@@ -143,7 +186,7 @@ def for_nauchforum(soup):
 
     return {
         'title': title,
-        'authors': clean_html_text(', '.join(authors))[:-2],
+        'authors': clean_html_text(', '.join(authors)),
         'annotation': clean_html_text(annotation),
         'article_text': clean_html_text('\n'.join(article_text))
     }
@@ -155,18 +198,16 @@ def get_article():
     # url = 'https://nauchforum.ru/conf/tech/xxxiv/73493'
 
     urls = [
-        # 'https://moluch.ru/keywords/%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7/',
-        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=1',
-        # 10 страниц с результатами
-        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=2',
-        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=3',
-        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=4',
-        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=5',
-        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=6',
-        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=7',
-        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=8',
-        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=9',
-        'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=10',
+        'https://moluch.ru/keywords/%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7/',
+        # 'https://cyberleninka.ru/search?q=%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7&page=1',
+        'https://sibac.info/search/node/%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7',
+        'https://sibac.info/search/node/%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7?page=1',
+        'https://sibac.info/search/node/%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D1%8F',
+        'https://sibac.info/search/node/%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D1%8F?page=1',
+        'https://sibac.info/search/node/%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D1%8F?page=2',
+        'https://sibac.info/search/node/%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D1%8F?page=3',
+        'https://sibac.info/search/node/%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D1%8F?page=4',
+        'https://sibac.info/search/node/%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D1%8F?page=5',
         'https://nauchforum.ru/search/node/%D0%BA%D1%80%D0%B8%D0%BF%D1%82%D0%BE%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7',
     ]
     url = get_url_for_article(urls)
@@ -183,6 +224,8 @@ def get_article():
             article_data = for_cyberleninka(soup)
         elif 'nauchforum' in url:
             article_data = for_nauchforum(soup)
+        elif 'sibac' in url:
+            article_data = for_sibac(soup)
 
         article = Article(
             title=article_data['title'],
