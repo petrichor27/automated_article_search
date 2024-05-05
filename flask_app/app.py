@@ -1,20 +1,26 @@
 from flask import Flask, redirect, render_template, request, session
 
 from flask_app.article import Article
+from flask_app.bayes import bayes
 from flask_app.db import app, db
 from flask_app.parsers import get_article
 
 
 @app.route("/")
 def index():
+    if 'accuracy' in session:
+        acc = session['accuracy']
+        session.pop('accuracy')
+        return render_template("index.html", h1="Меню", action=0, accuracy=acc)
+
     if 'action' not in session or session['action'] == 0:
-        return render_template("index.html", h1="Меню", action=0)
+        return render_template("index.html", h1="Меню", action=0, accuracy=-1)
     if session['action'] == 1:
         session['action'] = 0
-        return render_template("index.html", h1="Меню", action=1)
+        return render_template("index.html", h1="Меню", action=1, accuracy=-1)
     else:
         session['action'] = 0
-        return render_template("index.html", h1="Меню", action=2)
+        return render_template("index.html", h1="Меню", action=2, accuracy=-1)
 
 
 @app.route("/articles")
@@ -47,6 +53,13 @@ def update_checkbox():
     article.compliance_label = checkbox_value
     db.session.commit()
     return 'Checkbox updated', 200
+
+
+@app.route('/use_bayes')
+def use_bayes():
+    accuracy = bayes()
+    session['accuracy'] = accuracy
+    return redirect('/')
 
 
 if __name__ == "__main__":
